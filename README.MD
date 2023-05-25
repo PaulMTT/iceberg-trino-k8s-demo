@@ -56,7 +56,19 @@ Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be
 You are also able to access the "hive" catalog that is used by the standalone hive metastore. Trino is configured to access this same catalog.
 
 
+## Disclaimer
+Minio/s3 and postgres credentials are passed into apps using secrets and environment variables.
+
+Hive/Trino both have configuration files that are injected into the container, these configurations have the credentials templated via environment variable.
+
+In other words, if you need to change minio/postgres credentials, you will need to recreate the 'minio-admin' and 'postgres-admin' secrets.
+
+There are duplicate copies of these secrets in each namespace (secrets are bound to namespaces).
+
+A production environment would have a better secret-to-namespace management strategy.
+
 ## Misc
+
 You can scale the trino worker pool via:
 - `kubectl scale statefulset trino-worker -n trino --replicas=4`
 - `kubectl scale statefulset trino-worker -n trino --replicas=2`
