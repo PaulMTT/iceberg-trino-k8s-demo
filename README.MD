@@ -79,6 +79,9 @@ Take a look around through the minio webui, check out the "test" bucket.
 
 Experiment and see what the data/metadata looks like when a schema is created in  `hive` vs `iceberg`, or when the file formats are different `PARQUET/AVRO/ORC`.
 
+Explore the trino webui!
+If trino is running with `--debug` you will also get a url link to the job, like - http://10.107.143.42:8080/ui/query.html?20230525_143631_00014_6xyhs
+
 You can scale the trino worker pool via:
 - `kubectl scale statefulset trino-worker -n trino --replicas=4`
 - `kubectl scale statefulset trino-worker -n trino --replicas=2`
