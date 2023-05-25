@@ -58,14 +58,12 @@ You are also able to access the "hive" catalog that is used by the standalone hi
 
 ## Disclaimer
 Minio/s3 and postgres credentials are passed into apps using secrets and environment variables.
-
 Hive/Trino both have configuration files that are injected into the container, these configurations have the credentials templated via environment variable.
-
 In other words, if you need to change minio/postgres credentials, you will need to recreate the 'minio-admin' and 'postgres-admin' secrets.
-
 There are duplicate copies of these secrets in each namespace (secrets are bound to namespaces).
-
 A production environment would have a better secret-to-namespace management strategy.
+
+A minio user/pass can be used as an s3 key/secret.
 
 ## Misc
 
