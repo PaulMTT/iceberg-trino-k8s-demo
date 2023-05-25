@@ -1,6 +1,6 @@
 # Iceberg-trino-k8s-demo
 Setting up a local kubernetes cluster on macos,
-and executing distributed sql queries over iceberg s3.
+and executing distributed sql queries over iceberg s3 via trino.
 
 ## Dependencies
 - socket_vmnet (`brew install socket_vmnet`)
