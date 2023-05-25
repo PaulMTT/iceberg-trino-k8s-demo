@@ -92,6 +92,8 @@ Experiment and see what the data/metadata looks like when a schema is created in
 Explore the trino webui!
 If trino is running with `--debug` you will also get a url link to the job, like - http://10.107.143.42:8080/ui/query.html?20230525_143631_00014_6xyhs
 
+Try to scale the trino workers, and watch as the queries are distributed to them.
+
 You can scale the trino worker pool via:
 - `kubectl scale statefulset trino-worker -n trino --replicas=4`
 - `kubectl scale statefulset trino-worker -n trino --replicas=2`
