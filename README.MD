@@ -67,6 +67,12 @@ A production environment would have a better secret-to-namespace management stra
 
 A minio user/pass can be used as an s3 key/secret.
 
+I've referenced bits and pieces to get this all hooked up together.
+The repo from alexcpn was helpful for figuring out a lot of the configuration, especially the standalone hive metastore.
+I've used the image built from alexcpn as it is heavily inspired by the official iceberg-spark configurations, adds some jars we need from trino/postgres.
+Checking the dockerfile, I wouldnt do anything different and this image is already publically available.
+This image is used for the metastore, and for initializing the postgres db(via the apache schematool).
+
 ## Misc
 
 Take a look around through the minio webui, check out the "test" bucket.
@@ -84,3 +90,4 @@ Useful kubectl:
 
 Links
 - https://trino.io/docs/current/connector/iceberg.html#metadata-tables
+- https://github.com/alexcpn/presto_in_kubernetes
