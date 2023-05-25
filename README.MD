@@ -48,10 +48,12 @@ Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be
 - `show schemas from iceberg;`
 - `create schema iceberg.demo with (location = 's3a://test/demo');`
 - `create table iceberg.demo.one(country varchar, state varchar, population bigint) with (format = 'PARQUET');`
+- `show tables from demo;`
 - `insert into demo.one values('usa','delaware',2000);`
 - `insert into demo.one values('usa','new york',1000);`
 - `select * from demo.one;`
 - `delete from demo.one where state='new york';`
+- `select * from demo."one$snapshots";` This `$snapshots` is accessing iceberg metadata, refer to trino iceberg connector for other iceberg metadata tables.
 
 You are also able to access the "hive" catalog that is used by the standalone hive metastore. Trino is configured to access this same catalog.
 
