@@ -14,9 +14,13 @@ and executing distributed sql queries over iceberg s3.
 ## Summary
 
 There are four main "deployables" organized into four namespaces.
+
 You basically just need to "kubectl create -f" them all in order. No need to add any namespace arguments, as the yamls create namespaces themselves.
+
 Minio should be deployed before everything.
+
 Postgres should be deployed before Hive. Hive deployment runs an init job to initialize the postgres db schema.
+
 Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be stored on a hive metastore.
 
 ## Bootstrap
