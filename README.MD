@@ -39,7 +39,7 @@ Usage
 - This is a sql repl
 
 Some sql commands to try:
-- show schemas from iceberg;
+- `show schemas from iceberg;`
 - `create schema iceberg.demo with (location = 's3a://test/demo');`
 - `create table iceberg.demo.one(country varchar, state varchar, population bigint) with (format = 'PARQUET');`
 - `insert into demo.one values('usa','delaware',2000);`
