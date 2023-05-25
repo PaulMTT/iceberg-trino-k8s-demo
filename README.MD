@@ -22,10 +22,12 @@ Minio should be deployed before everything.
 Postgres should be deployed before Hive. Hive deployment runs an init job to initialize the postgres db schema.
 
 Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be stored on a hive metastore.
+
 As stated on trino:
 
 ```
-The Iceberg table format manages most metadata in metadata files in the object storage itself. A small amount of metadata, however, still requires the use of a metastore.
+The Iceberg table format manages most metadata in metadata files in the object storage itself.
+A small amount of metadata, however, still requires the use of a metastore.
 ```
 
 ## Bootstrap
