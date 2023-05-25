@@ -240,8 +240,8 @@ spec:
           mountPath: /etc/trino/catalog/iceberg.properties
           subPath: iceberg.properties
         - name: trino-cfg-vol
-          mountPath: /etc/trino/catalog/mysql.properties
-          subPath: mysql.properties
+          mountPath: /etc/trino/catalog/postgres.properties
+          subPath: postgres.properties
         - name: trino-tmp-data
           mountPath: /tmp
         resources:
