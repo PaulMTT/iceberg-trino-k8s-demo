@@ -2,6 +2,8 @@
 Setting up a local kubernetes cluster on macos,
 and executing distributed sql queries over iceberg s3 via trino.
 
+![architecture diagram](./resource/architecture.png)
+
 ## Dependencies
 - socket_vmnet (`brew install socket_vmnet`)
 - hyperkit (`brew install hyperkit`)
