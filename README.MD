@@ -67,6 +67,10 @@ A minio user/pass can be used as an s3 key/secret.
 
 ## Misc
 
+Take a look around through the minio webui, check out the "test" bucket.
+
+Experiment and see what the data/metadata looks like when a schema is created in  `hive` vs `iceberg`, or when the file formats are different `PARQUET/AVRO/ORC`.
+
 You can scale the trino worker pool via:
 - `kubectl scale statefulset trino-worker -n trino --replicas=4`
 - `kubectl scale statefulset trino-worker -n trino --replicas=2`
@@ -74,6 +78,7 @@ You can scale the trino worker pool via:
 Useful kubectl:
 - `watch -n 1 kubectl get services --all-namespaces`
 - `watch -n 1 kubectl get pods -n trino`
+
 
 Links
 - https://trino.io/docs/current/connector/iceberg.html#metadata-tables
