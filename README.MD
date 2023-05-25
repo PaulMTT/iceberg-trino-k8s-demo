@@ -15,7 +15,7 @@ and executing distributed sql queries over iceberg s3.
 
 There are four main "deployables" organized into four namespaces.
 
-You basically just need to "kubectl create -f" them all in order. No need to add any namespace arguments, as the yamls create namespaces themselves.
+You basically just need to `kubectl create -f <file>` them all in order. No need to add any namespace arguments, as the yamls create namespaces themselves.
 
 Minio should be deployed before everything.
 
