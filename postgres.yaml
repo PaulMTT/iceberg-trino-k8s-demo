@@ -1,0 +1,88 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-admin
+  namespace: postgres
+data:
+  db: cG9zdGdyZXM= #postgres
+  password: cG9zdGdyZXNzcGFzc3dvcmQxMjM= #postgresspassword123
+  user: cG9zdGdyZXM= #postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: postgres
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10G
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: password
+        volumeMounts:
+        - mountPath: /var/lib/postgres/data
+          name: postgres-data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: postgres
+spec:
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: port-1
+    protocol: TCP
+    port: 5432
+  selector:
+    app: postgres
+  type: LoadBalancer

@@ -1,0 +1,276 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trino
+---
+# we do this because both the coordinator and workers need to have the same set of configs, and should be treated as an atomic group
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: trino-configs
+  namespace: trino
+data:
+  jvm.config: |-
+    -server
+    -Xmx2G
+    -XX:-UseBiasedLocking
+    -XX:+UseG1GC
+    -XX:G1HeapRegionSize=32M
+    -XX:+ExplicitGCInvokesConcurrent
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+UseGCOverheadLimit
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:ReservedCodeCacheSize=512M
+    -Djdk.attach.allowAttachSelf=true
+    -Djdk.nio.maxCachedBufferSize=2000000
+  config.properties.coordinator: |-
+    coordinator=true
+    node-scheduler.include-coordinator=false
+    http-server.http.port=8080
+    query.max-memory=1GB
+    query.max-memory-per-node=1GB
+    #query.max-total-memory-per-node=1GB
+    query.max-stage-count=200
+    task.writer-count=4
+    discovery-server.enabled=true
+    discovery.uri=http://trino:8080
+  config.properties.worker: |-
+    coordinator=false
+    http-server.http.port=8080
+    query.max-memory=1GB
+    query.max-memory-per-node=1GB
+    query.max-stage-count=200
+    task.writer-count=4
+    discovery.uri=http://trino:8080
+  node.properties: |-
+    node.environment=test
+    spiller-spill-path=/tmp
+    max-spill-per-node=4TB
+    query-max-spill-per-node=1TB
+  hive.properties: |-
+    connector.name=hive-hadoop2
+    hive.metastore.uri=thrift://metastore.hive.svc.cluster.local:9083
+    hive.allow-drop-table=true
+    #hive.max-partitions-per-scan=1000000
+    hive.s3.endpoint=minio.minio.svc.cluster.local:9000
+    hive.s3.path-style-access=true
+    hive.s3.ssl.enabled=false
+    hive.s3.max-connections=100
+    hive.s3.aws-access-key=${ENV:AWS_ACCESS_KEY_ID}
+    hive.s3.aws-secret-key=${ENV:AWS_SECRET_ACCESS_KEY}
+    hive.allow-add-column=true
+    hive.allow-drop-column=true
+    hive.allow-rename-table=true
+    hive.allow-rename-column=true
+    hive.metastore-timeout=300s
+  iceberg.properties: |-
+    connector.name=iceberg
+    hive.metastore.uri=thrift://metastore.hive.svc.cluster.local:9083
+    #hive.max-partitions-per-scan=1000000
+    hive.s3.endpoint=minio.minio.svc.cluster.local:9000
+    hive.s3.path-style-access=true
+    hive.s3.ssl.enabled=false
+    hive.s3.max-connections=100
+  postgres.properties: |-
+    connector.name=postgresql
+    connection-url=jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/${ENV:POSTGRES_DB}?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC
+    connection-user=${ENV:POSTGRES_USER}
+    connection-password=${ENV:POSTGRES_PASSWORD}
+---
+# same secret as in minio namespace, the minio admin account - for ease of use (s3 key/secret)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-admin
+  namespace: trino
+data:
+  username: YWRtaW4= #admin
+  password: YWRtaW5wYXNzd29yZDEyMw== #adminpassword123
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-admin
+  namespace: trino
+data:
+  db: cG9zdGdyZXM= #postgres
+  password: cG9zdGdyZXNzcGFzc3dvcmQxMjM= #postgresspassword123
+  user: cG9zdGdyZXM= #postgres
+---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino-coordinator
+  namespace: trino
+spec:
+  selector:
+    matchLabels:
+      app: trino-coordinator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: trino-coordinator
+    spec:
+      containers:
+      - name: trino
+        image: trinodb/trino:386
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: password
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: username
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: password
+        volumeMounts:
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/jvm.config
+          subPath: jvm.config
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/config.properties
+          subPath: config.properties.coordinator
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/node.properties
+          subPath: node.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/hive.properties
+          subPath: hive.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/iceberg.properties
+          subPath: iceberg.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/mysql.properties
+          subPath: mysql.properties
+        resources:
+          requests:
+            memory: "1G"
+        imagePullPolicy: Always
+      volumes:
+      - name: trino-cfg-vol
+        configMap:
+          name: trino-configs
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trino-worker
+  namespace: trino
+spec:
+  serviceName: trino-worker 
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trino-worker
+  template:
+    metadata:
+      labels:
+        app: trino-worker
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: trino
+        image: trinodb/trino:386
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin
+              key: password
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: username
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: password
+        volumeMounts:
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/jvm.config
+          subPath: jvm.config
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/config.properties
+          subPath: config.properties.worker
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/node.properties
+          subPath: node.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/hive.properties
+          subPath: hive.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/iceberg.properties
+          subPath: iceberg.properties
+        - name: trino-cfg-vol
+          mountPath: /etc/trino/catalog/mysql.properties
+          subPath: mysql.properties
+        - name: trino-tmp-data
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "1G"
+        imagePullPolicy: Always
+      volumes:
+      - name: trino-cfg-vol
+        configMap:
+          name: trino-configs
+  volumeClaimTemplates:
+  - metadata:
+      name: trino-tmp-data
+    spec:
+      storageClassName: standard
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino
+  namespace: trino
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+  selector:
+    app: trino-coordinator

@@ -1,0 +1,93 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minio
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-admin
+  namespace: minio
+data:
+  username: YWRtaW4= #admin
+  password: YWRtaW5wYXNzd29yZDEyMw== #adminpassword123
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: minio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10G
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-pvc
+      containers:
+      - name: minio
+        volumeMounts:
+        - name: data 
+          mountPath: "/data"
+        image: minio/minio
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - minio server /data --console-address :9090
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: username
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin
+              key: password
+        ports:
+        - containerPort: 9000
+          hostPort: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: minio
+spec:
+  allocateLoadBalancerNodePorts: true
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: port-1
+    protocol: TCP
+    port: 9000
+  - name: port-2
+    protocol: TCP
+    port: 9090
+  selector:
+    app: minio
+  type: LoadBalancer
