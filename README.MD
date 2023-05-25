@@ -74,6 +74,9 @@ A production environment would have a better secret-to-namespace management stra
 
 A minio user/pass can be used as an s3 key/secret.
 
+Iceberg has two version, V1 and V2. V2 is needed for deletion (schema evolution).
+This is only supported when iceberg uses a hive metastore for the catalog, jdbc/rest will not work.
+
 I've referenced bits and pieces to get this all hooked up together.
 The repo from alexcpn was helpful for figuring out a lot of the configuration, especially the standalone hive metastore.
 I've used the image built from alexcpn as it is heavily inspired by the official iceberg-spark configurations, adds some jars we need from trino/postgres.
