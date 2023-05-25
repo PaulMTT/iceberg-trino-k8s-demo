@@ -3,11 +3,11 @@ Setting up a local kubernetes cluster on macos,
 and executing distributed sql queries over iceberg s3.
 
 ## Dependencies
-- socket_vmnet
-- hyperkit
-- kubectl
-- minikube
-- trino cli
+- socket_vmnet (`brew install socket_vmnet`)
+- hyperkit (`brew install hyperkit`)
+- kubectl (`brew install kubernetes-cli`)
+- minikube (`brew install minikube`)
+- trino cli (`brew install trino`)
 
 ^ Above socket_vmnet and hyperkit are used on macos to make the linux vm experience as expected (container on macos are vm within vm, need more management/forwarding..etc)
 
