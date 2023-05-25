@@ -28,7 +28,7 @@ Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be
 - `minikube tunnel` (leave this running to access services via clusterip via loadbalancer)
 - `kubectl create -f minio.yaml`
 - `kubectl get services -n minio`
-- Navigate to the external ip of the minio service, on port 9000  (http://10.100.138.239:9090/buckets)
+- Navigate to the external ip of the minio service, on port 9090  (http://10.100.138.239:9090/buckets)
 - Login with the credentials (admin/adminpassword123)
 - Create a bucket named "test", no need to modify any other options. Note, this is the only "manual" step. We could create a job to do this using aws cli, but this serves as a good checkpoint to verify configuration.
 - `kubectl create -f postgres.yaml`
