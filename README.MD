@@ -70,7 +70,7 @@ A minio user/pass can be used as an s3 key/secret.
 I've referenced bits and pieces to get this all hooked up together.
 The repo from alexcpn was helpful for figuring out a lot of the configuration, especially the standalone hive metastore.
 I've used the image built from alexcpn as it is heavily inspired by the official iceberg-spark configurations, adds some jars we need from trino/postgres.
-Checking the dockerfile, I wouldnt do anything different and this image is already publically available.
+Checking the [dockerfile](https://github.com/alexcpn/presto_in_kubernetes/blob/main/hive/Dockerfile), I wouldnt do anything different and this image is already publically available.
 This image is used for the metastore, and for initializing the postgres db(via the apache schematool).
 
 ## Misc
