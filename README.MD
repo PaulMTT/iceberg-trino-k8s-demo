@@ -1,8 +1,8 @@
-#Iceberg-trino-k8s-demo
+# Iceberg-trino-k8s-demo
 Setting up a local kubernetes cluster on macos,
 and executing distributed sql queries over iceberg s3.
 
-##Dependencies
+## Dependencies
 - socket_vmnet
 - hyperkit
 - kubectl
@@ -11,7 +11,7 @@ and executing distributed sql queries over iceberg s3.
 
 ^ Above socket_vmnet and hyperkit are used on macos to make the linux vm experience as expected (container on macos are vm within vm, need more management/forwarding..etc)
 
-##Summary
+## Summary
 
 There are four main "deployables" organized into four namespaces.
 You basically just need to "kubectl create -f" them all in order. No need to add any namespace arguments, as the yamls create namespaces themselves.
@@ -19,7 +19,7 @@ Minio should be deployed before everything.
 Postgres should be deployed before Hive. Hive deployment runs an init job to initialize the postgres db schema.
 Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be stored on a hive metastore.
 
-##Bootstrap
+## Bootstrap
 - `minikube start --network socket_vmnet --cpus='4' --memory='24GB' --disk-size='250GB'`
 - `minikube tunnel` (leave this running to access services via clusterip via loadbalancer)
 - `kubectl create -f minio.yaml`
@@ -34,13 +34,13 @@ Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be
 - `kubectl create -f trino.yaml`
 - Trino is started with 1 coordinator and 2 workers
 
-##Usage
+## Usage
 - `kubectl get services -n trino`
 - Note the external ip for trino from above
 - `trino --server http://<external ip of trino>:8080 --catalog iceberg --debug`
 - This is a sql repl
 
-##Some sql commands to try
+## Some sql commands to try
 - `show schemas from iceberg;`
 - `create schema iceberg.demo with (location = 's3a://test/demo');`
 - `create table iceberg.demo.one(country varchar, state varchar, population bigint) with (format = 'PARQUET');`
@@ -52,7 +52,7 @@ Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be
 You are also able to access the "hive" catalog that is used by the standalone hive metastore. Trino is configured to access this same catalog.
 
 
-##Misc
+## Misc
 You can scale the trino worker pool via:
 - `kubectl scale statefulset trino-worker -n trino --replicas=4`
 - `kubectl scale statefulset trino-worker -n trino --replicas=2`
