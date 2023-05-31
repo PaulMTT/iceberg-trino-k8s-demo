@@ -11,6 +11,8 @@ Iceberg table format scales better than hive, effectively "write once files" tha
 
 Trino, more "realtime" instead of "batched" like spark, lighter weight.
 
+Abuse the bandwidth between S3 and processing nodes.
+
 
 ## Technologies
 [Kubernetes](https://kubernetes.io) - Container orchestration across multiple nodes.
