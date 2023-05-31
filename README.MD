@@ -1,17 +1,41 @@
 # Iceberg-trino-k8s-demo
-Setting up a local kubernetes cluster on macos,
-and executing distributed sql queries over iceberg s3 via trino.
+Setting up a local [kubernetes](https://kubernetes.io) cluster on macos,
+and executing distributed sql queries over [iceberg](https://iceberg.apache.org/docs/latest/) + [s3](https://aws.amazon.com/s3/)([minio](https://min.io)) via [trino](https://trino.io).
 
 ![architecture diagram](./resource/architecture.png)
 
-## Dependencies
-- socket_vmnet (`brew install socket_vmnet`)
-- hyperkit (`brew install hyperkit`)
-- kubectl (`brew install kubernetes-cli`)
-- minikube (`brew install minikube`)
-- trino cli (`brew install trino`)
+## Why
+Separating the storage and processing resources allows them to be more efficiently used/scaled.
 
-^ Above socket_vmnet and hyperkit are used on macos to make the linux vm experience as expected (container on macos are vm within vm, need more management/forwarding..etc)
+Iceberg table format scales better than hive, effectively "write once files" that support schema evolution.
+
+Trino, more "realtime" instead of "batched" like spark, lighter weight.
+
+
+## Technologies
+[Kubernetes](https://kubernetes.io) - Container orchestration across multiple nodes.
+
+[Minikube](https://minikube.sigs.k8s.io/docs/) - Helper to bootstrap a single node local development kubernetes cluster.
+
+[S3](https://aws.amazon.com/s3/) - An object store. Amazons Simple Storage Service.
+
+[Minio](https://min.io) - An object store. Self hosted. Compatible with S3 API. Used for local development in place of S3.
+
+[Iceberg](https://iceberg.apache.org/docs/latest/) - A specification of a table format. Meaning, how to manage metadata of data files.
+
+[Trino](https://trino.io) - A distributed query engine (cluster), similar to spark.
+
+[Spark](https://spark.apache.org) - The de facto distributed query / data science library and engine (cluster).
+
+
+## Dependencies
+- [socket_vmnet](https://github.com/lima-vm/socket_vmnet) (`brew install socket_vmnet`)
+- [hyperkit](https://github.com/moby/hyperkit) (`brew install hyperkit`)
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/) (`brew install kubernetes-cli`)
+- [minikube](https://github.com/kubernetes/minikube) (`brew install minikube`)
+- [trino cli](https://trino.io/docs/current/client/cli.html) (`brew install trino`)
+
+`socket_vmnet` and `hyperkit` are used on macos to make the linux vm experience as expected (container on macos are vm within vm, needs more management/forwarding..etc)
 
 ## Summary
 
@@ -25,21 +49,20 @@ Postgres should be deployed before Hive. Hive deployment runs an init job to ini
 
 Hive should be deployed before Trino. Trino+Iceberg requires some metadata to be stored on a hive metastore.
 
-As stated on trino:
+As [stated on trino](https://trino.io/docs/current/connector/iceberg.html#metastores):
 
-```
-The Iceberg table format manages most metadata in metadata files in the object storage itself.
+> The Iceberg table format manages most metadata in metadata files in the object storage itself.
 A small amount of metadata, however, still requires the use of a metastore.
-```
+
 
 ## Bootstrap
 - `minikube start --network socket_vmnet --cpus='4' --memory='24GB' --disk-size='250GB'`
 - `minikube tunnel` (leave this running to access services via clusterip via loadbalancer)
 - `kubectl create -f minio.yaml`
 - `kubectl get services -n minio`
-- Navigate to the external ip of the minio service, on port 9090  (http://10.100.138.239:9090/buckets)
-- Login with the credentials (admin/adminpassword123)
-- Create a bucket named "test", no need to modify any other options. Note, this is the only "manual" step. We could create a job to do this using aws cli, but this serves as a good checkpoint to verify configuration.
+- Navigate to the external ip of the minio service, on port `9090`  (http://10.100.138.239:9090/buckets)
+- Login with the credentials (`admin`/`adminpassword123`)
+- Create a bucket named `test`, no need to modify any other options. Note, this is the only "manual" step. We could create a job to do this using aws cli, but this serves as a good checkpoint to verify configuration.
 - `kubectl create -f postgres.yaml`
 - `kubectl get pods -n postgres`
 - Wait for postgres to be up
@@ -48,12 +71,18 @@ A small amount of metadata, however, still requires the use of a metastore.
 - Trino is started with 1 coordinator and 2 workers
 
 ## Usage
+### Submit Queries
 - `kubectl get services -n trino`
-- Note the external ip for trino from above
+- Take note of the external ip reported for trino
 - `trino --server http://<external ip of trino>:8080 --catalog iceberg --debug`
-- This is a sql repl
+-  You are now in a sql repl
 
-## Some sql commands to try
+Input `quit` or `exit` to stop and exit the trino cli.
+
+Refer to [Trino CLI](https://trino.io/docs/current/client/cli.html), [SQL Language](https://trino.io/docs/current/language.html), [SQL Statement Syntax](https://trino.io/docs/current/sql.html)
+
+### SQL Queries
+- `quit` or `exit`
 - `show schemas from iceberg;`
 - `create schema iceberg.demo with (location = 's3a://test/demo');`
 - `create table iceberg.demo.one(country varchar, state varchar, population bigint) with (format = 'PARQUET');`
@@ -64,8 +93,34 @@ A small amount of metadata, however, still requires the use of a metastore.
 - `delete from demo.one where state='new york';`
 - `select * from demo."one$snapshots";` This `$snapshots` is accessing iceberg metadata, refer to trino iceberg connector for other iceberg metadata tables.
 
-You are also able to access the "hive" catalog that is used by the standalone hive metastore. Trino is configured to access this same catalog.
+### Scale Workers
 
+- `kubectl scale statefulset trino-worker -n trino --replicas=4`
+- `kubectl scale statefulset trino-worker -n trino --replicas=2`
+
+## Misc
+
+Take a look around through the minio webui, check out the `test` bucket.
+
+Experiment and see what the data/metadata looks like when a schema is created in  `hive` vs `iceberg`, or when the file formats are different `PARQUET/AVRO/ORC`.
+
+Explore the trino webui!
+If trino is running with `--debug` you will also get a url link to the job, like: 
+> http://10.107.143.42:8080/ui/query.html?20230525_143631_00014_6xyhs
+
+Try to scale the trino workers, and watch as the queries are distributed to them.
+
+You are also able to access the `hive` catalog that is used by the standalone hive metastore. Trino is configured to access this same catalog.
+
+## Useful Commands
+- `watch -n 1 kubectl get services --all-namespaces`
+- `watch -n 1 kubectl get pods -n trino`
+
+
+## Links
+- https://trino.io/docs/current/connector/iceberg.html#metadata-tables
+- https://github.com/alexcpn/presto_in_kubernetes
+- https://kubernetes.io/docs/reference/kubectl/cheatsheet/
 
 ## Disclaimer
 Minio/s3 and postgres credentials are passed into apps using secrets and environment variables.
@@ -84,27 +139,3 @@ The repo from alexcpn was helpful for figuring out a lot of the configuration, e
 I've used the image built from alexcpn as it is heavily inspired by the official iceberg-spark configurations, adds some jars we need from trino/postgres.
 Checking the [dockerfile](https://github.com/alexcpn/presto_in_kubernetes/blob/main/hive/Dockerfile), I wouldnt do anything different and this image is already publically available.
 This image is used for the metastore, and for initializing the postgres db(via the apache schematool).
-
-## Misc
-
-Take a look around through the minio webui, check out the "test" bucket.
-
-Experiment and see what the data/metadata looks like when a schema is created in  `hive` vs `iceberg`, or when the file formats are different `PARQUET/AVRO/ORC`.
-
-Explore the trino webui!
-If trino is running with `--debug` you will also get a url link to the job, like - http://10.107.143.42:8080/ui/query.html?20230525_143631_00014_6xyhs
-
-Try to scale the trino workers, and watch as the queries are distributed to them.
-
-You can scale the trino worker pool via:
-- `kubectl scale statefulset trino-worker -n trino --replicas=4`
-- `kubectl scale statefulset trino-worker -n trino --replicas=2`
-
-Useful kubectl:
-- `watch -n 1 kubectl get services --all-namespaces`
-- `watch -n 1 kubectl get pods -n trino`
-
-
-Links
-- https://trino.io/docs/current/connector/iceberg.html#metadata-tables
-- https://github.com/alexcpn/presto_in_kubernetes
